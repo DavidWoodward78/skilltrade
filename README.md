@@ -86,6 +86,9 @@ select cron.schedule('expire-stale-trades', '0 7 * * *', $$select public.expire_
 
 ### Deploy to Vercel
 
+Production domain: **https://skilltrade.team**. Set `NEXT_PUBLIC_SITE_URL=https://skilltrade.team` in Vercel; the production `*.vercel.app` address then redirects there automatically (preview deployments don't).
+
+
 Import the repo, add the three env vars (set `NEXT_PUBLIC_SITE_URL` to your production URL), deploy, then add the production callback URL in Supabase Auth.
 
 ## Project layout

@@ -3,7 +3,33 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot", "/auth", "/p/"];
 
+/**
+ * On the live site, send visitors from the old *.vercel.app address to the real domain.
+ * Only runs in production and only once NEXT_PUBLIC_SITE_URL points somewhere else,
+ * so preview deployments and local dev are untouched.
+ */
+function canonicalRedirect(request: NextRequest) {
+  if (process.env.VERCEL_ENV !== "production") return null;
+  const site = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!site) return null;
+  let canonical: URL;
+  try {
+    canonical = new URL(site);
+  } catch {
+    return null;
+  }
+  const host = request.headers.get("host") ?? "";
+  if (!host.endsWith(".vercel.app") || host === canonical.host) return null;
+  const url = request.nextUrl.clone();
+  url.protocol = canonical.protocol;
+  url.host = canonical.host;
+  url.port = "";
+  return NextResponse.redirect(url, 308);
+}
+
 export async function middleware(request: NextRequest) {
+  const moved = canonicalRedirect(request);
+  if (moved) return moved;
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
