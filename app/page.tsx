@@ -35,10 +35,13 @@ export default async function Home() {
             <p className="text-sm text-teal-50/80">Builders trading work, not cash</p>
           </div>
           <Link
-            href="/login"
+            href="/signup"
             className="mt-8 flex w-full items-center justify-center rounded-2xl bg-white py-3.5 text-base font-semibold text-teal-900 shadow-lg transition active:scale-[0.98]"
           >
             Get started — it&apos;s free
+          </Link>
+          <Link href="/login" className="mt-3 block text-center text-sm font-medium text-teal-50/90">
+            Already have an account? Sign in
           </Link>
         </div>
       </section>
