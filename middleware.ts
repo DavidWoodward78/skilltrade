@@ -22,9 +22,9 @@ function canonicalRedirect(request: NextRequest) {
   }
   const host = (request.headers.get("host") ?? "").toLowerCase();
   if (host === canonical.host) return null;
-  // www.skilltrade.team -> skilltrade.team (sign-in cookies only work on one of them)
-  const isWww = host === `www.${canonical.host}`;
-  if (!isWww && !host.endsWith(".vercel.app")) return null;
+  // Only the old *.vercel.app address is redirected here. www vs. the bare domain is
+  // handled in Vercel's Domains settings; doing it here too can loop with that setting.
+  if (!host.endsWith(".vercel.app")) return null;
   const url = request.nextUrl.clone();
   url.protocol = canonical.protocol;
   url.host = canonical.host;
