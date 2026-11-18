@@ -29,7 +29,7 @@ export default async function Profile({
   ]);
   const rows = (skills ?? []) as SkillRow[];
   const h = await headers();
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? `https://${h.get("host")}`;
+  const origin = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${h.get("host")}`).replace(/\/+$/, "");
   const suggested = (profile?.display_name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30);
 
   return (

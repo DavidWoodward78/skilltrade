@@ -5,6 +5,8 @@ import { PersonCard, type Person } from "@/components/PersonCard";
 import { SubmitButton } from "@/components/SubmitButton";
 import { expressInterest } from "./actions";
 import { SwipeDeck } from "./SwipeDeck";
+import { InviteShare } from "@/components/InviteShare";
+import { headers } from "next/headers";
 
 export default async function Discover({
   params,
@@ -31,10 +33,16 @@ export default async function Discover({
   ];
   const list = (people ?? []) as Person[];
   const backPath = `/o/${slug}${q ? `?q=${encodeURIComponent(q)}` : ""}`;
+  const h = await headers();
+  const origin = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${h.get("host")}`).replace(/\/+$/, "");
+  const inviteUrl = `${origin}/join/${org.invite_code}`;
 
   return (
     <>
-      <PageTitle sub="Search for a skill, or browse people whose needs fit your offers.">Discover</PageTitle>
+      <div className="flex items-start justify-between gap-3">
+        <PageTitle sub="Search for a skill, or browse people whose needs fit your offers.">Discover</PageTitle>
+        <InviteShare url={inviteUrl} orgName={org.name} compact />
+      </div>
       <Banner error={sp.error} notice={sp.notice} />
 
       {steps.some((st) => !st.done) && (

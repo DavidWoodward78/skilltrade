@@ -9,7 +9,7 @@ function safeNext(next: string | null) {
 
 async function origin() {
   const h = await headers();
-  return process.env.NEXT_PUBLIC_SITE_URL ?? h.get("origin") ?? "http://localhost:3000";
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? h.get("origin") ?? "http://localhost:3000").replace(/\/+$/, "");
 }
 
 export async function sendMagicLink(formData: FormData) {

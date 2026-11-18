@@ -4,6 +4,7 @@ import { getOrgContext } from "@/lib/org";
 import { Banner, Card, PageTitle, inputCls, pct } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Avatar } from "@/components/Avatar";
+import { InviteShare } from "@/components/InviteShare";
 import { VerifiedBadges } from "@/components/Verified";
 import { pauseMember, reinstateMember, removeMember, resolveReport, rotateInvite, setRole } from "../actions";
 
@@ -55,7 +56,7 @@ export default async function Admin({
   const name = (id: string) => profiles?.find((p) => p.id === id)?.display_name || "Member";
 
   const h = await headers();
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? `https://${h.get("host")}`;
+  const origin = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${h.get("host")}`).replace(/\/+$/, "");
   const inviteUrl = `${origin}/join/${org.invite_code}`;
   const backPath = `/o/${slug}/admin`;
   const closedAccepted = st.trades_completed + st.trades_failed;
@@ -83,7 +84,8 @@ export default async function Admin({
       <Card className="mb-4">
         <h2 className="font-medium">Invite members</h2>
         <input readOnly value={inviteUrl} className={`${inputCls} mt-2 font-mono text-xs`} />
-        <p className="mt-1 text-xs text-stone-500">Anyone with this link can join. Code: {org.invite_code}</p>
+        <InviteShare url={inviteUrl} orgName={org.name} />
+        <p className="mt-2 text-xs text-stone-500">Anyone with this link can join. Code: {org.invite_code}</p>
         <form action={rotateInvite} className="mt-2">
           <input type="hidden" name="org_id" value={org.id} />
           <input type="hidden" name="back" value={backPath} />
