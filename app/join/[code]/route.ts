@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { joinResultPath } from "@/lib/join";
 
 export async function GET(request: Request, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -8,6 +9,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ code
   if (error || !data) {
     return NextResponse.redirect(new URL(`/orgs?error=${encodeURIComponent(error?.message ?? "Invite not found")}`, request.url));
   }
-  const notice = encodeURIComponent("Welcome! Add what you offer and need so people can find you.");
-  return NextResponse.redirect(new URL(`/o/${data.slug}/profile?notice=${notice}`, request.url));
+  return NextResponse.redirect(new URL(joinResultPath(data), request.url));
 }

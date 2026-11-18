@@ -1,4 +1,5 @@
 "use server";
+import { joinResultPath } from "@/lib/join";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 
@@ -16,5 +17,5 @@ export async function joinOrg(formData: FormData) {
   const code = raw.includes("/join/") ? raw.split("/join/")[1].split(/[?#/]/)[0] : raw;
   const { data, error } = await supabase.rpc("join_org", { p_code: code });
   if (error) redirect(`/orgs?error=${encodeURIComponent(error.message)}`);
-  redirect(`/o/${data.slug}/profile?notice=${encodeURIComponent("Welcome! Add what you offer and need so people can find you.")}`);
+  redirect(joinResultPath(data));
 }

@@ -310,3 +310,29 @@ export async function dismissInterest(fd: FormData) {
   const { error } = await supabase.rpc("dismiss_interest", { p_org: s(fd, "org_id"), p_from: s(fd, "from_user") });
   done(fd, error ? { error: error.message } : { notice: "Got it. They won't show here again unless you change your mind from their profile." });
 }
+
+// ---------- Access and join requests ----------
+
+export async function saveAccess(fd: FormData) {
+  const { supabase } = await requireUser();
+  const domain = s(fd, "allowed_email_domain").toLowerCase().replace(/^@/, "");
+  if (domain && !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) done(fd, { error: "Enter a domain like zipcodewilmington.com" });
+  const { error } = await supabase
+    .from("organizations")
+    .update({ require_approval: fd.get("require_approval") === "on", allowed_email_domain: domain || null })
+    .eq("id", s(fd, "org_id"));
+  done(fd, error ? { error: error.message } : { notice: "Access settings saved." });
+}
+
+export async function decideJoin(fd: FormData) {
+  const { supabase } = await requireUser();
+  const approve = s(fd, "approve") === "1";
+  const { data, error } = await supabase.rpc("decide_join", {
+    p_org: s(fd, "org_id"),
+    p_user: s(fd, "user_id"),
+    p_approve: approve,
+  });
+  if (error) done(fd, { error: error.message });
+  if (data === "full") done(fd, { error: "You've reached your plan's member limit. Upgrade to approve more people." });
+  done(fd, { notice: approve ? "Approved. They can sign in and start trading." : "Request declined." });
+}

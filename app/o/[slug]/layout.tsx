@@ -12,7 +12,8 @@ export default async function OrgLayout({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { supabase, user, org, isAdmin } = await getOrgContext(slug);
+  const { supabase, user, org, isAdmin, active } = await getOrgContext(slug);
+  const trialDays = Math.ceil((new Date(org.trial_ends_at).getTime() - Date.now()) / 86400000);
   const [{ data: me }, { data: membership }] = await Promise.all([
     supabase.from("profiles").select("display_name, avatar_url").eq("id", user.id).single(),
     supabase.from("memberships").select("suspended_at").eq("org_id", org.id).eq("user_id", user.id).single(),
@@ -28,6 +29,23 @@ export default async function OrgLayout({
           <Avatar name={me?.display_name || "You"} url={me?.avatar_url} size={32} />
         </Link>
       </header>
+      {!active && (
+        <div role="alert" className="mx-4 mt-4 rounded-2xl bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="font-semibold">{org.name} is read-only</p>
+          <p className="mt-0.5">
+            {isAdmin ? (
+              <>The plan has ended. Members can see their chats and trades but can&apos;t start new ones. <a href={`/o/${slug}/admin`} className="font-semibold underline">Choose a plan</a></>
+            ) : (
+              <>This community&apos;s plan has ended. You can still see your chats and trades. Ask an admin to renew it.</>
+            )}
+          </p>
+        </div>
+      )}
+      {active && isAdmin && org.plan === "trial" && trialDays <= 7 && (
+        <div className="mx-4 mt-4 rounded-2xl bg-teal-50 p-3 text-sm text-teal-900">
+          Free trial: {Math.max(0, trialDays)} day{trialDays === 1 ? "" : "s"} left. <a href={`/o/${slug}/admin`} className="font-semibold underline">Choose a plan</a>
+        </div>
+      )}
       {membership?.suspended_at && (
         <div role="alert" className="mx-4 mt-4 rounded-2xl bg-rose-50 p-3 text-sm text-rose-900">
           <p className="font-semibold">Your account is paused in {org.name}</p>
