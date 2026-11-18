@@ -2,7 +2,7 @@ import type Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { PLANS, planForPriceId } from "@/lib/plans";
+import { PLANS, cleanEnv, planForPriceId } from "@/lib/plans";
 
 const STATUS: Record<string, string> = {
   trialing: "active",
@@ -41,7 +41,7 @@ async function applySubscription(sub: Stripe.Subscription) {
 
 export async function POST(request: Request) {
   const signature = request.headers.get("stripe-signature");
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  const secret = cleanEnv(process.env.STRIPE_WEBHOOK_SECRET);
   if (!signature || !secret) return NextResponse.json({ error: "not configured" }, { status: 400 });
 
   let event: Stripe.Event;
