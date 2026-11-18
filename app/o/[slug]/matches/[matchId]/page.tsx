@@ -23,6 +23,7 @@ export default async function MatchPage({
   const { data: match } = await supabase.from("matches").select("*").eq("id", matchId).maybeSingle();
   if (!match) notFound();
   const otherId = match.user_a === user.id ? match.user_b : match.user_a;
+  await supabase.rpc("mark_match_read", { p_match: matchId });
 
   const [{ data: other }, { data: messages }, { data: trades }, { data: otherRep }] = await Promise.all([
     supabase.from("profiles").select("display_name, headline, avatar_url").eq("id", otherId).single(),
