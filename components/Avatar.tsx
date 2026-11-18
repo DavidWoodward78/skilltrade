@@ -69,12 +69,12 @@ export function PhotoPanel({ name, url, children }: { name: string; url?: string
         <img src={url} alt={name} className="absolute inset-0 h-full w-full object-cover" draggable={false} />
       ) : (
         <div
-          className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br text-7xl font-semibold text-white/90 ${GRADIENTS[hash(name) % GRADIENTS.length]}`}
+          className={`absolute inset-0 flex items-start justify-center bg-gradient-to-br pt-[22%] text-8xl font-semibold text-white/90 ${GRADIENTS[hash(name) % GRADIENTS.length]}`}
         >
           {initials(name)}
         </div>
       )}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-5 pt-24 text-white">
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5 pt-28 text-white">
         {children}
       </div>
     </div>
