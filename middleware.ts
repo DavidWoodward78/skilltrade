@@ -1,3 +1,4 @@
+import { siteUrl } from "@/lib/site";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -10,16 +11,20 @@ const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot", "/auth", "/p/"];
  */
 function canonicalRedirect(request: NextRequest) {
   if (process.env.VERCEL_ENV !== "production") return null;
-  const site = process.env.NEXT_PUBLIC_SITE_URL;
-  if (!site) return null;
+  const site = siteUrl(); // skilltrade.team unless NEXT_PUBLIC_SITE_URL names another real domain
+  // Server action and API POSTs can't follow a redirect to another host; let them through.
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
   let canonical: URL;
   try {
     canonical = new URL(site);
   } catch {
     return null;
   }
-  const host = request.headers.get("host") ?? "";
-  if (!host.endsWith(".vercel.app") || host === canonical.host) return null;
+  const host = (request.headers.get("host") ?? "").toLowerCase();
+  if (host === canonical.host) return null;
+  // www.skilltrade.team -> skilltrade.team (sign-in cookies only work on one of them)
+  const isWww = host === `www.${canonical.host}`;
+  if (!isWww && !host.endsWith(".vercel.app")) return null;
   const url = request.nextUrl.clone();
   url.protocol = canonical.protocol;
   url.host = canonical.host;
