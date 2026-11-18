@@ -163,6 +163,16 @@ export default async function Profile({
         </form>
       </Card>
 
+      <Card className="mb-4 flex items-center justify-between gap-3">
+        <div className="text-sm">
+          <p className="font-medium">Password</p>
+          <p className="text-stone-500">Set or change the password you sign in with.</p>
+        </div>
+        <a href="/reset-password" className="shrink-0 rounded-xl border border-stone-300 px-3 py-2 text-sm font-semibold hover:bg-stone-50">
+          Change password
+        </a>
+      </Card>
+
       <form action={leaveOrg} className="text-center">
         <input type="hidden" name="org_id" value={org.id} />
         <input type="hidden" name="back" value={backPath} />
