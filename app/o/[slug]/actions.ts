@@ -304,3 +304,9 @@ export async function reinstateMember(fd: FormData) {
   await supabase.from("reports").update({ resolved_at: new Date().toISOString() }).eq("org_id", orgId).eq("reported_id", userId).is("resolved_at", null);
   done(fd, { notice: "Member reinstated and their open reports resolved." });
 }
+
+export async function dismissInterest(fd: FormData) {
+  const { supabase } = await requireUser();
+  const { error } = await supabase.rpc("dismiss_interest", { p_org: s(fd, "org_id"), p_from: s(fd, "from_user") });
+  done(fd, error ? { error: error.message } : { notice: "Got it. They won't show here again unless you change your mind from their profile." });
+}

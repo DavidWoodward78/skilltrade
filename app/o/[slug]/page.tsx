@@ -4,7 +4,7 @@ import { getOrgContext } from "@/lib/org";
 import { Banner, Empty, PageTitle, btnGhostCls, inputCls } from "@/components/ui";
 import { PersonCard, type Person } from "@/components/PersonCard";
 import { SubmitButton } from "@/components/SubmitButton";
-import { expressInterest } from "./actions";
+import { dismissInterest, expressInterest } from "./actions";
 import { SwipeDeck } from "./SwipeDeck";
 import { InviteShare } from "@/components/InviteShare";
 
@@ -21,10 +21,12 @@ export default async function Discover({
   const q = (sp.q ?? "").trim();
   const swipe = sp.view === "swipe";
 
-  const [{ data: people }, { count: mySkills }, { data: me }] = await Promise.all([
+  const [{ data: people }, { count: mySkills }, { data: me }, { data: incomingIds }, { data: everyone }] = await Promise.all([
     supabase.rpc("discover", { p_org: org.id, p_query: q || null }),
     supabase.from("user_skills").select("*", { count: "exact", head: true }).eq("user_id", user.id),
     supabase.from("profiles").select("avatar_url, headline").eq("id", user.id).single(),
+    supabase.rpc("incoming_interest", { p_org: org.id }),
+    q ? supabase.rpc("discover", { p_org: org.id, p_query: null }) : Promise.resolve({ data: null }),
   ]);
   const steps = [
     { done: !!me?.avatar_url, label: "Add a photo so people know who they're trading with" },
@@ -32,6 +34,8 @@ export default async function Discover({
     { done: !!me?.headline, label: "Write a one-line headline" },
   ];
   const list = (people ?? []) as Person[];
+  const incoming = new Set(((incomingIds ?? []) as unknown as string[]).map(String));
+  const interestedInMe = ((everyone ?? people ?? []) as Person[]).filter((p) => incoming.has(p.user_id));
   const backPath = `/o/${slug}${q ? `?q=${encodeURIComponent(q)}` : ""}`;
   const origin = siteUrl();
   const inviteUrl = `${origin}/join/${org.invite_code}`;
@@ -59,6 +63,41 @@ export default async function Discover({
           </ul>
           <p className="mt-3 text-xs font-semibold text-teal-100">Finish your profile →</p>
         </Link>
+      )}
+
+      {interestedInMe.length > 0 && (
+        <section className="mb-6 rounded-3xl border border-rose-200 bg-rose-50/60 p-4">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">
+              {interestedInMe.length}
+            </span>
+            Interested in you
+          </h2>
+          <p className="mt-0.5 text-sm text-stone-600">
+            These members want to trade with you. Tap <b>Match</b> to start a chat, or <b>Not now</b> to set them aside.
+          </p>
+          <div className="mt-3 space-y-3">
+            {interestedInMe.map((p) => (
+              <PersonCard key={p.user_id} p={p} slug={slug}>
+                <div className="flex gap-2">
+                  <form action={expressInterest} className="flex-1">
+                    <input type="hidden" name="org_id" value={org.id} />
+                    <input type="hidden" name="to_user" value={p.user_id} />
+                    <input type="hidden" name="slug" value={slug} />
+                    <input type="hidden" name="back" value={backPath} />
+                    <SubmitButton className="w-full" pendingText="Matching…">Match</SubmitButton>
+                  </form>
+                  <form action={dismissInterest}>
+                    <input type="hidden" name="org_id" value={org.id} />
+                    <input type="hidden" name="from_user" value={p.user_id} />
+                    <input type="hidden" name="back" value={backPath} />
+                    <SubmitButton variant="ghost" pendingText="…">Not now</SubmitButton>
+                  </form>
+                </div>
+              </PersonCard>
+            ))}
+          </div>
+        </section>
       )}
 
       <form className="mb-3 flex gap-2" action={`/o/${slug}`}>
@@ -92,6 +131,9 @@ export default async function Discover({
         <div className="space-y-3">
           {list.map((p) => (
             <PersonCard key={p.user_id} p={p} slug={slug}>
+              {incoming.has(p.user_id) && !p.matched && !p.i_am_interested && (
+                <p className="mb-2 text-xs font-semibold text-rose-600">♥ Interested in you</p>
+              )}
               {p.matched ? (
                 <Link href={`/o/${slug}/matches`} className="text-sm font-medium text-teal-700">
                   Matched · open chat
