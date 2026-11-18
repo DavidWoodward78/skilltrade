@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -22,6 +23,10 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const resetPending = (await cookies()).get("st_pw_reset")?.value === "1";
+    if (!error && (resetPending || next === "/reset-password")) {
+      return NextResponse.redirect(new URL("/reset-password", url.origin));
+    }
     if (!error) {
       return NextResponse.redirect(
         next.includes("/profile") ? withMsg(next, "notice", "Account connected. Your verified badge is on.") : new URL(next, url.origin),

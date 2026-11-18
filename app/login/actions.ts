@@ -1,5 +1,7 @@
 "use server";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
+
+const RESET_COOKIE = "st_pw_reset";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -103,6 +105,7 @@ export async function requestPasswordReset(formData: FormData) {
   await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${await origin()}/auth/callback?next=${encodeURIComponent("/reset-password")}`,
   });
+  (await cookies()).set(RESET_COOKIE, "1", { maxAge: 60 * 60, httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NODE_ENV === "production" });
   // Same message whether or not the account exists, so emails can't be probed.
   redirect(`/forgot?sent=1`);
 }
@@ -114,5 +117,6 @@ export async function updatePassword(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
   if (error) redirect(`/reset-password?error=${encodeURIComponent(friendly(error.message))}`);
+  (await cookies()).delete(RESET_COOKIE);
   redirect(`/orgs?notice=${encodeURIComponent("Password saved. Use it next time you sign in.")}`);
 }

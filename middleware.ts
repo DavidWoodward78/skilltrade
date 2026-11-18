@@ -43,6 +43,7 @@ export async function middleware(request: NextRequest) {
   if (code && !request.nextUrl.pathname.startsWith("/auth/")) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/callback";
+    if (request.cookies.get("st_pw_reset")?.value === "1") url.searchParams.set("next", "/reset-password");
     return NextResponse.redirect(url);
   }
   let response = NextResponse.next({ request });

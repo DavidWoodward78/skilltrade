@@ -8,7 +8,7 @@ export default async function ResetPassword({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const { user } = await requireUser();
   return (
-    <AuthShell title="Set a new password" sub={`For ${user.email}`}>
+    <AuthShell title="Set a new password" sub={`For ${user.email}. You\u2019ll use it to sign in from now on.`}>
       <Banner error={sp.error} />
       <form action={updatePassword} className="space-y-3">
         <PasswordField label="New password (8+ characters)" autoComplete="new-password" />
