@@ -61,9 +61,19 @@ export function Avatar({
 }
 
 /** Large photo panel for the swipe card. */
-export function PhotoPanel({ name, url, children }: { name: string; url?: string | null; children?: React.ReactNode }) {
+export function PhotoPanel({
+  name,
+  url,
+  children,
+  className = "aspect-[4/5] rounded-3xl",
+}: {
+  name: string;
+  url?: string | null;
+  children?: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl bg-stone-200">
+    <div className={`relative w-full overflow-hidden bg-stone-200 ${className}`}>
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={url} alt={name} className="absolute inset-0 h-full w-full object-cover" draggable={false} />

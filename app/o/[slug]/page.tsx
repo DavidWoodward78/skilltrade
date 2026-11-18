@@ -5,7 +5,7 @@ import { Banner, Empty, PageTitle, btnGhostCls, inputCls } from "@/components/ui
 import { PersonCard, type Person } from "@/components/PersonCard";
 import { SubmitButton } from "@/components/SubmitButton";
 import { dismissInterest, expressInterest } from "./actions";
-import { SwipeDeck } from "./SwipeDeck";
+import { redirect } from "next/navigation";
 import { InviteShare } from "@/components/InviteShare";
 
 export default async function Discover({
@@ -19,7 +19,7 @@ export default async function Discover({
   const sp = await searchParams;
   const { supabase, user, org } = await getOrgContext(slug);
   const q = (sp.q ?? "").trim();
-  const swipe = sp.view === "swipe";
+  if (sp.view === "swipe") redirect(`/o/${slug}/swipe`);
 
   const [{ data: people }, { count: mySkills }, { data: me }, { data: incomingIds }, { data: everyone }] = await Promise.all([
     supabase.rpc("discover", { p_org: org.id, p_query: q || null }),
@@ -104,26 +104,22 @@ export default async function Discover({
         <input name="q" defaultValue={q} placeholder="e.g. React, SEO, logo, pricing" className={inputCls} />
         <button className={btnGhostCls}>Search</button>
       </form>
-      <div className="mb-4 inline-flex rounded-xl bg-stone-200/70 p-1 text-sm font-medium">
-        <Link
-          href={`/o/${slug}${q ? `?q=${encodeURIComponent(q)}` : ""}`}
-          className={`rounded-lg px-3 py-1.5 ${swipe ? "text-stone-500" : "bg-white text-stone-900 shadow-sm"}`}
-        >
-          List
-        </Link>
-        <Link href={`/o/${slug}?view=swipe`} className={`rounded-lg px-3 py-1.5 ${swipe ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>
-          Swipe mutual fits
-        </Link>
-      </div>
+      <Link
+        href={`/o/${slug}/swipe`}
+        className="mb-5 flex items-center justify-between gap-3 rounded-2xl bg-stone-900 p-4 text-white shadow-lg shadow-stone-900/20 transition active:scale-[0.99]"
+      >
+        <span>
+          <span className="block font-semibold">Swipe mutual fits</span>
+          <span className="block text-sm text-white/70">Full-screen profiles. Right to trade, left to skip.</span>
+        </span>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-500" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 9h12l-3-3M19 15H7l3 3" />
+          </svg>
+        </span>
+      </Link>
 
-      {swipe ? (
-        <SwipeDeck
-          slug={slug}
-          orgId={org.id}
-          people={list.filter((p) => !p.matched && !p.i_am_interested && p.fit_score > 0)}
-          hasSkills={!!mySkills}
-        />
-      ) : list.length === 0 ? (
+      {list.length === 0 ? (
         <Empty>
           {q ? `No one matches “${q}” yet.` : "No other members yet. Share the invite link to get people in."}
         </Empty>
