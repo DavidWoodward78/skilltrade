@@ -30,6 +30,16 @@ function canonicalRedirect(request: NextRequest) {
 export async function middleware(request: NextRequest) {
   const moved = canonicalRedirect(request);
   if (moved) return moved;
+
+  // If Supabase falls back to the Site URL (e.g. the callback address isn't on its
+  // Redirect URLs list), the sign-in code lands on "/" instead of /auth/callback.
+  // Finish the sign-in anyway instead of dropping the person on the landing page.
+  const code = request.nextUrl.searchParams.get("code");
+  if (code && !request.nextUrl.pathname.startsWith("/auth/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    return NextResponse.redirect(url);
+  }
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
