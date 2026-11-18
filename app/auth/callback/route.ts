@@ -28,5 +28,7 @@ export async function GET(request: Request) {
       );
     }
   }
-  return NextResponse.redirect(new URL("/login?error=That%20link%20expired.%20Try%20again.", url.origin));
+  const msg = "That link didn't work. Email links must be opened in the same browser you requested them from. Request a new one and open it there.";
+  const back = next === "/reset-password" ? "/forgot" : "/login";
+  return NextResponse.redirect(new URL(`${back}?error=${encodeURIComponent(msg)}`, url.origin));
 }
