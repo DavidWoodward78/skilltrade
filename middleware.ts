@@ -2,7 +2,7 @@ import { siteUrl } from "@/lib/site";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot", "/auth", "/p/"];
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot", "/auth", "/p/", "/api/stripe/"];
 
 /**
  * On the live site, send visitors from the old *.vercel.app address to the real domain.

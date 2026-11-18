@@ -14,6 +14,8 @@ export default async function Orgs({ searchParams }: { searchParams: Promise<{ e
     .eq("user_id", user.id)
     .order("joined_at", { ascending: false });
 
+  const { data: pending } = await supabase.rpc("my_pending_requests");
+  const { data: isOwner } = await supabase.rpc("is_platform_admin");
   const orgs = (rows ?? []).map((r) => {
     const o = r.organizations as unknown as { name: string; slug: string };
     return { ...o, role: r.role as string };
@@ -46,6 +48,21 @@ export default async function Orgs({ searchParams }: { searchParams: Promise<{ e
         ))}
       </div>
 
+      {(pending ?? []).length > 0 && (
+        <div className="mt-4 space-y-2">
+          {(pending as { org_name: string }[]).map((p) => (
+            <Card key={p.org_name} className="flex items-center justify-between border-dashed">
+              <span className="font-medium text-stone-500">{p.org_name}</span>
+              <span className="text-xs text-amber-700">Waiting for admin approval</span>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {isOwner && (
+        <a href="/owner" className="mt-4 block text-sm font-medium text-teal-700">Owner: manage all communities →</a>
+      )}
+
       <Card className="mt-8">
         <h2 className="font-medium">Join with an invite</h2>
         <form action={joinOrg} className="mt-3 flex gap-2">
@@ -56,7 +73,7 @@ export default async function Orgs({ searchParams }: { searchParams: Promise<{ e
 
       <Card className="mt-4">
         <h2 className="font-medium">Start a community</h2>
-        <p className="mt-1 text-sm text-stone-500">For accelerators, bootcamps and founder groups. You&apos;ll be the admin.</p>
+        <p className="mt-1 text-sm text-stone-500">For accelerators, bootcamps and founder groups. You&apos;ll be the admin. Free for 30 days, then plans start at $99/month.</p>
         <form action={createOrg} className="mt-3 space-y-3">
           <Field label="Community name">
             <input name="name" required minLength={2} maxLength={80} className={inputCls} />

@@ -6,7 +6,8 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { Avatar } from "@/components/Avatar";
 import { InviteShare } from "@/components/InviteShare";
 import { VerifiedBadges } from "@/components/Verified";
-import { pauseMember, reinstateMember, removeMember, resolveReport, rotateInvite, setRole } from "../actions";
+import { decideJoin, pauseMember, reinstateMember, removeMember, resolveReport, rotateInvite, saveAccess, setRole } from "../actions";
+import { PLANS, PLAN_LABEL, billingConfigured, type PlanId } from "@/lib/plans";
 
 type Stats = {
   members: number;
@@ -33,7 +34,7 @@ export default async function Admin({
 }) {
   const { slug } = await params;
   const sp = await searchParams;
-  const { supabase, user, org, isAdmin } = await getOrgContext(slug);
+  const { supabase, user, org, isAdmin, active } = await getOrgContext(slug);
   if (!isAdmin) notFound();
 
   const [{ data: stats }, { data: members }, { data: reports }, { data: flagData }] = await Promise.all([
@@ -42,6 +43,12 @@ export default async function Admin({
     supabase.from("reports").select("id, reporter_id, reported_id, trade_id, reason, created_at").eq("org_id", org.id).is("resolved_at", null).order("created_at", { ascending: false }),
     supabase.rpc("org_flags", { p_org: org.id }),
   ]);
+  const { data: requests } = await supabase
+    .from("join_requests")
+    .select("user_id, created_at")
+    .eq("org_id", org.id)
+    .eq("status", "pending")
+    .order("created_at");
   type Flag = { kind: "closed_pair" | "fast_trade" | "reported" | "paused"; users: string[]; detail: string; trade_id?: string };
   const flags = (flagData ?? []) as Flag[];
   const st = stats as Stats;
@@ -49,6 +56,7 @@ export default async function Admin({
     ...(members ?? []).map((m) => m.user_id),
     ...(reports ?? []).flatMap((r) => [r.reporter_id, r.reported_id]),
     ...flags.flatMap((f) => f.users),
+    ...(requests ?? []).map((r) => r.user_id),
   ])];
   const { data: profiles } = ids.length
     ? await supabase.from("profiles").select("id, display_name, avatar_url, verified_github, verified_linkedin").in("id", ids)
@@ -79,6 +87,120 @@ export default async function Admin({
     <>
       <PageTitle sub="Collaboration outcomes for your community.">Admin</PageTitle>
       <Banner error={sp.error} notice={sp.notice} />
+
+      <Card className="mb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-medium">Plan and billing</h2>
+            <p className="mt-1 text-sm text-stone-600">
+              <b>{PLAN_LABEL[org.plan] ?? org.plan}</b>
+              {org.plan === "trial" && (
+                <> · {Math.max(0, Math.ceil((new Date(org.trial_ends_at).getTime() - Date.now()) / 86400000))} days left</>
+              )}
+              {org.billing_status === "past_due" && <span className="text-amber-700"> · payment failed, update your card</span>}
+              {org.billing_status === "canceled" && <span className="text-rose-700"> · canceled</span>}
+            </p>
+            <p className="text-xs text-stone-500">
+              {(members ?? []).length} of {org.member_limit >= 100000 ? "unlimited" : org.member_limit} members
+            </p>
+          </div>
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${active ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
+            {active ? "Active" : "Read-only"}
+          </span>
+        </div>
+        {org.plan !== "pilot" && (
+          billingConfigured() ? (
+            <>
+              <div className="mt-3 grid gap-2">
+                {(Object.keys(PLANS) as PlanId[]).map((id) => {
+                  const p = PLANS[id];
+                  const current = org.plan === id && org.billing_status === "active";
+                  return (
+                    <form key={id} action="/api/billing/checkout" method="post"
+                      className={`flex items-center justify-between gap-3 rounded-xl border p-3 ${current ? "border-teal-600 bg-teal-50/50" : "border-stone-200"}`}>
+                      <input type="hidden" name="org_id" value={org.id} />
+                      <input type="hidden" name="plan" value={id} />
+                      <div className="text-sm">
+                        <p className="font-semibold">{p.name} <span className="font-normal text-stone-500">· {p.price}</span></p>
+                        <p className="text-xs text-stone-500">{p.members >= 100000 ? "Unlimited members" : `Up to ${p.members} members`} · {p.blurb}</p>
+                      </div>
+                      {current ? (
+                        <span className="text-xs font-semibold text-teal-700">Current</span>
+                      ) : (
+                        <button className="shrink-0 rounded-xl bg-teal-700 px-3 py-2 text-sm font-semibold text-white">Choose</button>
+                      )}
+                    </form>
+                  );
+                })}
+              </div>
+              {org.stripe_customer_id && (
+                <form action="/api/billing/portal" method="post" className="mt-3">
+                  <input type="hidden" name="org_id" value={org.id} />
+                  <button className="text-sm font-medium text-teal-700 underline">Manage billing, invoices and cancellation</button>
+                </form>
+              )}
+            </>
+          ) : (
+            <p className="mt-3 rounded-xl bg-stone-50 p-3 text-sm text-stone-600">Paid plans are coming soon. Your community is free during the trial.</p>
+          )
+        )}
+      </Card>
+
+      {(requests ?? []).length > 0 && (
+        <Card className="mb-4 border-amber-200">
+          <h2 className="font-medium">Join requests <span className="text-amber-700">({(requests ?? []).length})</span></h2>
+          <ul className="mt-2 divide-y divide-stone-100">
+            {(requests ?? []).map((r) => (
+              <li key={r.user_id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                <span className="flex min-w-0 items-center gap-2">
+                  <Avatar name={name(r.user_id)} url={profiles?.find((p) => p.id === r.user_id)?.avatar_url} size={28} />
+                  <span className="truncate">{name(r.user_id)}</span>
+                  <VerifiedBadges github={profiles?.find((p) => p.id === r.user_id)?.verified_github} linkedin={profiles?.find((p) => p.id === r.user_id)?.verified_linkedin} />
+                </span>
+                <span className="flex shrink-0 gap-2">
+                  <form action={decideJoin}>
+                    <input type="hidden" name="org_id" value={org.id} />
+                    <input type="hidden" name="user_id" value={r.user_id} />
+                    <input type="hidden" name="approve" value="1" />
+                    <input type="hidden" name="back" value={backPath} />
+                    <SubmitButton pendingText="…">Approve</SubmitButton>
+                  </form>
+                  <form action={decideJoin}>
+                    <input type="hidden" name="org_id" value={org.id} />
+                    <input type="hidden" name="user_id" value={r.user_id} />
+                    <input type="hidden" name="approve" value="0" />
+                    <input type="hidden" name="back" value={backPath} />
+                    <SubmitButton variant="ghost" pendingText="…">Decline</SubmitButton>
+                  </form>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      <Card className="mb-4">
+        <h2 className="font-medium">Who can join</h2>
+        <form action={saveAccess} className="mt-3 space-y-3">
+          <input type="hidden" name="org_id" value={org.id} />
+          <input type="hidden" name="back" value={backPath} />
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" name="require_approval" defaultChecked={org.require_approval} className="mt-0.5 h-4 w-4 accent-teal-700" />
+            <span>
+              <span className="font-medium">Approve new members</span>
+              <span className="block text-xs text-stone-500">The invite link sends you a request instead of letting people straight in.</span>
+            </span>
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span className="font-medium">Only allow emails from this domain (optional)</span>
+            <div className="flex items-center rounded-xl border border-stone-300 bg-white pl-3">
+              <span className="text-stone-400">@</span>
+              <input name="allowed_email_domain" defaultValue={org.allowed_email_domain ?? ""} placeholder="yourschool.edu" className="w-full rounded-xl px-1 py-2 outline-none" />
+            </div>
+          </label>
+          <SubmitButton variant="ghost">Save</SubmitButton>
+        </form>
+      </Card>
 
       <Card className="mb-4">
         <h2 className="font-medium">Invite members</h2>
