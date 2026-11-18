@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "Trade skills with people in your community. Agree the work, deliver it, build a reputation.",
 };
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0f766e" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0f766e", interactiveWidget: "resizes-content" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

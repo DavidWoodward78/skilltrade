@@ -29,6 +29,9 @@ export function Chat({
   const [otherTyping, setOtherTyping] = useState(false);
   const [live, setLive] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [typingBox, setTypingBox] = useState<number | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const supabaseRef = useRef(createClient());
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -37,9 +40,50 @@ export function Chat({
   // New server data (e.g. after a Trade Card action) replaces our list
   useEffect(() => setMessages(initial), [initial]);
 
+  // Scroll the message list itself (not the whole page) to the newest message
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [messages.length, otherTyping]);
+    const el = listRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length, otherTyping, typingBox]);
+
+  // On phones the keyboard covers the bottom of the screen. While the message box is
+  // focused, hide the bottom menu, size the message list to the space above the
+  // keyboard, and keep the message box in view.
+  function fitAboveKeyboard() {
+    const vv = window.visualViewport;
+    const form = formRef.current;
+    if (!vv || !form) return;
+    const header = 56; // sticky community header
+    const box = Math.max(140, Math.floor(vv.height - header - form.offsetHeight - 16));
+    setTypingBox(box);
+    requestAnimationFrame(() => {
+      const card = form.parentElement;
+      if (!card) return;
+      const top = card.getBoundingClientRect().top + window.scrollY - header - 8;
+      window.scrollTo({ top: Math.max(0, top) });
+    });
+  }
+
+  function onFocus() {
+    document.body.classList.add("chat-typing");
+    fitAboveKeyboard();
+    window.visualViewport?.addEventListener("resize", fitAboveKeyboard);
+  }
+
+  function onBlur() {
+    document.body.classList.remove("chat-typing");
+    window.visualViewport?.removeEventListener("resize", fitAboveKeyboard);
+    setTypingBox(null);
+  }
+
+  useEffect(
+    () => () => {
+      document.body.classList.remove("chat-typing");
+      window.visualViewport?.removeEventListener("resize", fitAboveKeyboard);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   useEffect(() => {
     const supabase = supabaseRef.current;
@@ -143,7 +187,12 @@ export function Chat({
 
   return (
     <div className="rounded-2xl border border-stone-200 bg-white">
-      <div className="max-h-[50dvh] space-y-2 overflow-y-auto p-4" aria-live="polite">
+      <div
+        ref={listRef}
+        className="max-h-[50dvh] space-y-2 overflow-y-auto overscroll-contain p-4"
+        style={typingBox ? { maxHeight: typingBox, height: typingBox } : undefined}
+        aria-live="polite"
+      >
         {messages.length === 0 && (
           <p className="text-center text-sm text-stone-500">
             You matched with {otherName}. Talk through what each of you needs, then send a Trade Card.
@@ -177,12 +226,15 @@ export function Chat({
         <div ref={endRef} />
       </div>
       {error && <p className="px-3 text-xs text-rose-700">{error}</p>}
-      <form onSubmit={send} className="flex gap-2 border-t border-stone-200 p-3">
+      <form ref={formRef} onSubmit={send} className="flex gap-2 border-t border-stone-200 p-3">
         <input
           value={draft}
           onChange={(e) => onType(e.target.value)}
           maxLength={4000}
           autoComplete="off"
+          enterKeyHint="send"
+          onFocus={onFocus}
+          onBlur={onBlur}
           placeholder="Message"
           aria-label="Message"
           className={inputCls}
@@ -190,6 +242,7 @@ export function Chat({
         <button
           type="submit"
           disabled={!draft.trim()}
+          onMouseDown={(e) => e.preventDefault() /* keep the keyboard open after sending */}
           className="inline-flex items-center justify-center rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
         >
           Send

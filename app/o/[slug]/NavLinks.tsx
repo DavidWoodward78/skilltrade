@@ -57,7 +57,7 @@ export function NavLinks({ slug, orgId, isAdmin }: { slug: string; orgId: string
     ...(isAdmin ? [{ href: `${base}/admin`, label: "Admin" }] : []),
   ];
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-stone-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+    <nav data-bottom-nav className="fixed inset-x-0 bottom-0 z-10 border-t border-stone-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
       <ul className="mx-auto flex max-w-2xl">
         {items.map((it) => {
           const active = it.exact ? path === it.href || path.startsWith(`${base}/people`) : path.startsWith(it.href);
