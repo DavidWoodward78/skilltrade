@@ -35,7 +35,7 @@ export default async function OrgLayout({
         </div>
       )}
       <main className="px-4 py-5">{children}</main>
-      <NavLinks slug={slug} isAdmin={isAdmin} />
+      <NavLinks slug={slug} orgId={org.id} isAdmin={isAdmin} />
     </div>
   );
 }

@@ -59,7 +59,10 @@ export function Chat({
           { event: "INSERT", schema: "public", table: "messages", filter: `match_id=eq.${matchId}` },
           (payload) => {
             const m = payload.new as Msg;
-            if (m.sender_id !== me) setOtherTyping(false);
+            if (m.sender_id !== me) {
+              setOtherTyping(false);
+              supabase.rpc("mark_match_read", { p_match: matchId }).then(() => window.dispatchEvent(new Event("nav-counts:refresh")));
+            }
             setMessages((list) => {
               if (list.some((x) => x.id === m.id)) return list;
               // Replace our own optimistic copy if it's there
