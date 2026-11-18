@@ -5,7 +5,7 @@ import { Banner, Card, Field, inputCls } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
 import { createOrg, joinOrg } from "./actions";
 
-export default async function Orgs({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function Orgs({ searchParams }: { searchParams: Promise<{ error?: string; notice?: string }> }) {
   const sp = await searchParams;
   const { supabase, user } = await requireUser();
   const { data: rows } = await supabase
@@ -29,7 +29,7 @@ export default async function Orgs({ searchParams }: { searchParams: Promise<{ e
       </div>
       <h1 className="text-2xl font-bold tracking-tight">Your communities</h1>
       <div className="mt-4">
-        <Banner error={sp.error} />
+        <Banner error={sp.error} notice={sp.notice} />
       </div>
 
       <div className="mt-2 space-y-2">
