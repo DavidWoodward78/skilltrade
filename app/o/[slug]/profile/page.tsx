@@ -1,3 +1,4 @@
+import { siteUrl } from "@/lib/site";
 import { getOrgContext } from "@/lib/org";
 import { CATEGORIES, LEVELS } from "@/lib/constants";
 import { Banner, Card, Chip, Field, PageTitle, inputCls } from "@/components/ui";
@@ -5,7 +6,6 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { Reputation, type Rep } from "@/components/Reputation";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { ConnectAccounts } from "@/components/ConnectAccounts";
-import { headers } from "next/headers";
 import { addSkill, leaveOrg, removeSkill, saveProfile, savePortfolio } from "../actions";
 
 type SkillRow = { id: string; kind: "offer" | "need"; category: string; skill: string; level: number };
@@ -28,8 +28,7 @@ export default async function Profile({
     supabase.rpc("reputation", { p_user: user.id }).maybeSingle<Rep>(),
   ]);
   const rows = (skills ?? []) as SkillRow[];
-  const h = await headers();
-  const origin = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${h.get("host")}`).replace(/\/+$/, "");
+  const origin = siteUrl();
   const suggested = (profile?.display_name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30);
 
   return (
