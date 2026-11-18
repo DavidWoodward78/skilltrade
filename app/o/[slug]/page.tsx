@@ -75,6 +75,7 @@ export default async function Discover({
           slug={slug}
           orgId={org.id}
           people={list.filter((p) => !p.matched && !p.i_am_interested && p.fit_score > 0)}
+          hasSkills={!!mySkills}
         />
       ) : list.length === 0 ? (
         <Empty>
