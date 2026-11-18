@@ -6,12 +6,18 @@ export const PLANS: Record<PlanId, { name: string; price: string; members: numbe
   enterprise: { name: "Enterprise", price: "$499/mo", members: 100000, blurb: "Large accelerators and institutions" },
 };
 
+/** Env values pasted into a dashboard often carry stray spaces, line breaks or quotes. */
+export function cleanEnv(v: string | undefined): string | undefined {
+  const t = v?.trim().replace(/^["']|["']$/g, "").trim();
+  return t || undefined;
+}
+
 /** Stripe price IDs come from environment variables, so test and live keys can differ. */
 export function priceIdFor(plan: PlanId): string | undefined {
   return {
-    community: process.env.STRIPE_PRICE_COMMUNITY,
-    growth: process.env.STRIPE_PRICE_GROWTH,
-    enterprise: process.env.STRIPE_PRICE_ENTERPRISE,
+    community: cleanEnv(process.env.STRIPE_PRICE_COMMUNITY),
+    growth: cleanEnv(process.env.STRIPE_PRICE_GROWTH),
+    enterprise: cleanEnv(process.env.STRIPE_PRICE_ENTERPRISE),
   }[plan];
 }
 
@@ -22,7 +28,7 @@ export function planForPriceId(priceId: string | undefined | null): PlanId | nul
 }
 
 export function billingConfigured() {
-  return !!process.env.STRIPE_SECRET_KEY && !!priceIdFor("community");
+  return !!cleanEnv(process.env.STRIPE_SECRET_KEY) && !!priceIdFor("community");
 }
 
 export const PLAN_LABEL: Record<string, string> = {
