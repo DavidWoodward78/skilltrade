@@ -84,6 +84,13 @@ export async function signUpWithPassword(formData: FormData) {
     },
   });
   if (error) back(friendly(error.message));
+  // Supabase hides whether an email is taken: it "succeeds" but sends nothing and
+  // returns a user with no identities. Tell the person what to do instead.
+  if (data.user && (data.user.identities?.length ?? 0) === 0) {
+    redirect(
+      `/login?error=${encodeURIComponent("You already have an account with that email. Sign in below, or tap “Forgot password?” to set a password.")}&next=${encodeURIComponent(next)}`,
+    );
+  }
   // Email confirmation off: signed in right away. On: they confirm by email first.
   if (data.session) redirect(next);
   redirect(`/login?notice=${encodeURIComponent("Almost there: check your email and tap the link to confirm your account.")}&next=${encodeURIComponent(next)}`);
