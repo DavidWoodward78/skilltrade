@@ -1,3 +1,4 @@
+import { siteUrl } from "@/lib/site";
 import Link from "next/link";
 import { getOrgContext } from "@/lib/org";
 import { Banner, Empty, PageTitle, btnGhostCls, inputCls } from "@/components/ui";
@@ -6,7 +7,6 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { expressInterest } from "./actions";
 import { SwipeDeck } from "./SwipeDeck";
 import { InviteShare } from "@/components/InviteShare";
-import { headers } from "next/headers";
 
 export default async function Discover({
   params,
@@ -33,8 +33,7 @@ export default async function Discover({
   ];
   const list = (people ?? []) as Person[];
   const backPath = `/o/${slug}${q ? `?q=${encodeURIComponent(q)}` : ""}`;
-  const h = await headers();
-  const origin = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${h.get("host")}`).replace(/\/+$/, "");
+  const origin = siteUrl();
   const inviteUrl = `${origin}/join/${org.invite_code}`;
 
   return (

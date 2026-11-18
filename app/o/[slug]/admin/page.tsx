@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { siteUrl } from "@/lib/site";
 import { notFound } from "next/navigation";
 import { getOrgContext } from "@/lib/org";
 import { Banner, Card, PageTitle, inputCls, pct } from "@/components/ui";
@@ -55,8 +55,7 @@ export default async function Admin({
     : { data: [] as { id: string; display_name: string; avatar_url: string; verified_github: string | null; verified_linkedin: boolean }[] };
   const name = (id: string) => profiles?.find((p) => p.id === id)?.display_name || "Member";
 
-  const h = await headers();
-  const origin = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${h.get("host")}`).replace(/\/+$/, "");
+  const origin = siteUrl();
   const inviteUrl = `${origin}/join/${org.invite_code}`;
   const backPath = `/o/${slug}/admin`;
   const closedAccepted = st.trades_completed + st.trades_failed;

@@ -6,6 +6,7 @@ import { fitLabel, SkillRow, type Person } from "@/components/PersonCard";
 import { PhotoPanel } from "@/components/Avatar";
 import { VerifiedBadges } from "@/components/Verified";
 import { swipeInterest } from "./actions";
+import { siteUrl } from "@/lib/site";
 
 export function SwipeDeck({
   slug,
@@ -69,7 +70,7 @@ export function SwipeDeck({
 
   async function share() {
     if (!p) return;
-    const url = `${window.location.origin}/o/${slug}/people/${p.user_id}`;
+    const url = `${siteUrl()}/o/${slug}/people/${p.user_id}`;
     const text = `${p.display_name || "This member"} on SkillTrade${p.headline ? `: ${p.headline}` : ""}`;
     try {
       if (navigator.share) {
