@@ -42,7 +42,7 @@ export default async function Matches({
       {waiting > 0 && (
         <p className="mb-3 rounded-xl bg-teal-50 p-3 text-sm text-teal-900">
           {waiting} {waiting === 1 ? "person is" : "people are"} interested in you.{" "}
-          <Link href={`/o/${slug}?view=swipe`} className="font-medium underline">Find them in Discover</Link> to match.
+          <Link href={`/o/${slug}/swipe`} className="font-medium underline">Find them in Discover</Link> to match.
         </p>
       )}
       {(matches ?? []).length === 0 ? (
