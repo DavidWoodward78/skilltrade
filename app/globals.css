@@ -9,3 +9,8 @@ body { @apply bg-[#f7f6f3] text-stone-900 antialiased; }
 
 /* While typing a chat message on a phone, hide the bottom menu so it doesn't sit on top of the keyboard */
 body.chat-typing [data-bottom-nav] { display: none; }
+
+/* iPhones zoom into any text box smaller than 16px. Use 16px on touch screens so tapping a box doesn't zoom. */
+@media (pointer: coarse) {
+  input, textarea, select { font-size: 16px !important; }
+}
