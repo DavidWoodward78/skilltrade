@@ -163,6 +163,30 @@ select slack_test.ok(not exists (select 1 from memberships where org_id = :'org2
 select slack_test.ok(exists (select 1 from join_requests where org_id = :'org2' and user_id = :T and status = 'pending'), 'join request created');
 
 -- ---------------------------------------------------------------------------
+-- Plans: Slack pauses on a plan without it, and resumes on upgrade
+-- ---------------------------------------------------------------------------
+reset role;
+update organizations set plan = 'community', billing_status = 'active' where id = :'org1';
+set role authenticated;
+set request.jwt.claim.sub = :E;
+insert into interests (org_id, from_user, to_user) values (:'org1', :E, :B);
+reset role;
+select slack_test.ok((select count(*) from slack_outbox where payload->>'from_user' = :E) = 0, 'Community plan: no Slack cards');
+set role service_role;
+insert into slack_cards (org_id, from_user, to_user) values (:'org1', :E, :B) returning id as card_eb \gset
+select slack_test.ok(slack_respond_card(:'card_eb', 'T1', 'UB', true)->>'status' = 'not_found', 'Community plan: clicks ignored');
+select slack_test.ok(slack_interest_context(:'org1', :E, :B) is null, 'Community plan: queued cards are not sent');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = :S;
+select slack_test.ok(join_org_via_slack()->>'status' = 'none', 'Community plan: Slack sign-in does not auto-join');
+reset role;
+update organizations set plan = 'growth' where id = :'org1';
+set role service_role;
+select slack_test.ok(slack_respond_card(:'card_eb', 'T1', 'UB', false)->>'status' = 'passed', 'Growth plan: Slack resumes');
+reset role;
+
+-- ---------------------------------------------------------------------------
 -- Uninstall disables the link: no new cards, clicks ignored
 -- ---------------------------------------------------------------------------
 set role service_role;

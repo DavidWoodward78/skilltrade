@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { BOT_SCOPES, installRedirectUri, slackConfigured, slackEnv } from "@/lib/slack/config";
+import { BOT_SCOPES, installRedirectUri, planIncludesSlack, slackConfigured, slackEnv } from "@/lib/slack/config";
 
 export const runtime = "nodejs";
 
@@ -15,9 +15,12 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL("/login", url.origin));
 
-  const { data: org } = await supabase.from("organizations").select("id, slug").eq("id", orgId).maybeSingle();
+  const { data: org } = await supabase.from("organizations").select("id, slug, plan").eq("id", orgId).maybeSingle();
   const { data: isAdmin } = org ? await supabase.rpc("is_admin", { p_org: org.id }) : { data: false };
   if (!org || !isAdmin) return NextResponse.redirect(new URL("/orgs", url.origin));
+  if (!planIncludesSlack(org.plan)) {
+    return NextResponse.redirect(new URL(`/o/${org.slug}/admin?error=${encodeURIComponent("Slack is included on the Growth and Enterprise plans.")}`, url.origin));
+  }
   if (!slackConfigured()) {
     return NextResponse.redirect(new URL(`/o/${org.slug}/admin?error=${encodeURIComponent("Slack isn't set up on this server yet.")}`, url.origin));
   }

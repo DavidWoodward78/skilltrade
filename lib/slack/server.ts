@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { siteUrl } from "@/lib/site";
 import { callSlack } from "./api.ts";
-import { slackConfigured, slackEnv } from "./config.ts";
+import { planIncludesSlack, slackConfigured, slackEnv } from "./config.ts";
 import { decryptToken } from "./crypto.ts";
 import { drainOutbox, type Card, type Deps, type MatchInfo, type OutboxItem, type RespondResult, type SlackDb, type Workspace } from "./flows.ts";
 import type { InterestContext, SkillItem } from "./blocks.ts";
@@ -20,11 +20,15 @@ function makeDb(): SlackDb {
   async function workspace(col: "org_id" | "team_id", value: string): Promise<Workspace | null> {
     const { data } = await db
       .from("slack_workspaces")
-      .select("org_id, team_id, bot_token_enc")
+      .select("org_id, team_id, bot_token_enc, organizations(plan)")
       .eq(col, value)
       .is("disabled_at", null)
       .maybeSingle();
     if (!data) return null;
+    // Downgraded to a plan without Slack: paused (still linked, nothing sent).
+    const org = data.organizations as unknown as { plan: string } | { plan: string }[] | null;
+    const plan = Array.isArray(org) ? org[0]?.plan : org?.plan;
+    if (!plan || !planIncludesSlack(plan)) return null;
     return { orgId: data.org_id, teamId: data.team_id, token: decryptToken(data.bot_token_enc, key) };
   }
 

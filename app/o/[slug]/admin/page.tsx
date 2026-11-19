@@ -8,7 +8,7 @@ import { InviteShare } from "@/components/InviteShare";
 import { VerifiedBadges } from "@/components/Verified";
 import { decideJoin, pauseMember, reinstateMember, removeMember, resolveReport, rotateInvite, saveAccess, setRole } from "../actions";
 import { PLANS, PLAN_LABEL, billingConfigured, type PlanId } from "@/lib/plans";
-import { slackConfigured } from "@/lib/slack/config";
+import { planIncludesSlack, slackConfigured } from "@/lib/slack/config";
 import { disconnectSlack } from "./slack-actions";
 
 type Stats = {
@@ -55,7 +55,9 @@ export default async function Admin({
   const slack = (slackRows ?? [])[0] as
     | { team_name: string; installed_at: string; disabled_at: string | null; disabled_reason: string | null; members_linked: number }
     | undefined;
-  const slackLive = !!slack && !slack.disabled_at;
+  const slackLinked = !!slack && !slack.disabled_at;
+  const slackIncluded = planIncludesSlack(org.plan);
+  const slackLive = slackLinked && slackIncluded;
   type Flag = { kind: "closed_pair" | "fast_trade" | "reported" | "paused"; users: string[]; detail: string; trade_id?: string };
   const flags = (flagData ?? []) as Flag[];
   const st = stats as Stats;
@@ -95,6 +97,7 @@ export default async function Admin({
       <PageTitle sub="Collaboration outcomes for your community.">Admin</PageTitle>
       <Banner error={sp.error} notice={sp.notice} />
 
+      <div id="billing" className="scroll-mt-4" />
       <Card className="mb-4">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -129,7 +132,7 @@ export default async function Admin({
                       <input type="hidden" name="plan" value={id} />
                       <div className="text-sm">
                         <p className="font-semibold">{p.name} <span className="font-normal text-stone-500">· {p.price}</span></p>
-                        <p className="text-xs text-stone-500">{p.members >= 100000 ? "Unlimited members" : `Up to ${p.members} members`} · {p.blurb}</p>
+                        <p className="text-xs text-stone-500">{p.members >= 100000 ? "Unlimited members" : `Up to ${p.members} members`} · {p.blurb}{p.slack && " · Slack"}</p>
                       </div>
                       {current ? (
                         <span className="text-xs font-semibold text-teal-700">Current</span>
@@ -222,8 +225,28 @@ export default async function Admin({
       </Card>
 
       <Card className="mb-4">
-        <h2 className="font-medium">Slack</h2>
-        {slackLive ? (
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="font-medium">Slack</h2>
+          <a href="/help/slack" className="text-xs text-teal-700 underline">How it works</a>
+        </div>
+        {!slackIncluded ? (
+          <>
+            <p className="mt-1 text-sm">
+              {slackLinked ? "Slack is paused: your plan doesn't include it." : "Slack is included on the Growth and Enterprise plans."}
+            </p>
+            <p className="mt-1 text-xs text-stone-500">
+              Members get a DM when someone wants to trade with them, answer from Slack, and get a group DM when they match.
+            </p>
+            <a href="#billing" className="mt-3 inline-flex rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white">See plans</a>
+            {slackLinked && (
+              <form action={disconnectSlack} className="mt-2">
+                <input type="hidden" name="org_id" value={org.id} />
+                <input type="hidden" name="slug" value={slug} />
+                <SubmitButton variant="ghost">Disconnect Slack</SubmitButton>
+              </form>
+            )}
+          </>
+        ) : slackLive ? (
           <>
             <p className="mt-1 text-sm">
               Connected to <span className="font-medium">{slack!.team_name || "your workspace"}</span>. {slack!.members_linked} member

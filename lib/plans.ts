@@ -1,9 +1,10 @@
 export type PlanId = "community" | "growth" | "enterprise";
 
-export const PLANS: Record<PlanId, { name: string; price: string; members: number; blurb: string }> = {
-  community: { name: "Community", price: "$99/mo", members: 50, blurb: "Small founder groups" },
-  growth: { name: "Growth", price: "$249/mo", members: 200, blurb: "Bootcamps and incubators" },
-  enterprise: { name: "Enterprise", price: "$499/mo", members: 100000, blurb: "Large accelerators and institutions" },
+// `slack` must match SLACK_PLANS in lib/slack/plans.ts (tests/slack/plans.test.ts checks this).
+export const PLANS: Record<PlanId, { name: string; price: string; members: number; blurb: string; slack: boolean }> = {
+  community: { name: "Community", price: "$99/mo", members: 50, blurb: "Small founder groups", slack: false },
+  growth: { name: "Growth", price: "$249/mo", members: 200, blurb: "Bootcamps and incubators", slack: true },
+  enterprise: { name: "Enterprise", price: "$499/mo", members: 100000, blurb: "Large accelerators and institutions", slack: true },
 };
 
 /** Env values pasted into a dashboard often carry stray spaces, line breaks or quotes. */

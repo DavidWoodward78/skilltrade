@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { exchangeOAuthCode } from "@/lib/slack/api";
-import { BOT_SCOPES, installRedirectUri, slackEnv } from "@/lib/slack/config";
+import { BOT_SCOPES, installRedirectUri, planIncludesSlack, slackEnv } from "@/lib/slack/config";
 import { encryptToken } from "@/lib/slack/crypto";
 
 export const runtime = "nodejs";
@@ -21,13 +21,14 @@ export async function GET(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL("/login", url.origin));
-  const { data: org } = orgId ? await supabase.from("organizations").select("id, slug").eq("id", orgId).maybeSingle() : { data: null };
+  const { data: org } = orgId ? await supabase.from("organizations").select("id, slug, plan").eq("id", orgId).maybeSingle() : { data: null };
   if (!org) return NextResponse.redirect(new URL("/orgs", url.origin));
   const back = (key: "error" | "notice", msg: string) =>
     NextResponse.redirect(new URL(`/o/${org.slug}/admin?${key}=${encodeURIComponent(msg)}`, url.origin));
 
   const { data: isAdmin } = await supabase.rpc("is_admin", { p_org: org.id });
   if (!isAdmin) return NextResponse.redirect(new URL("/orgs", url.origin));
+  if (!planIncludesSlack(org.plan)) return back("error", "Slack is included on the Growth and Enterprise plans.");
 
   const state = url.searchParams.get("state") ?? "";
   const stateOk = !!expectedState && state.length === expectedState.length &&

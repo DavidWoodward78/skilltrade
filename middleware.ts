@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Slack calls these server-to-server; they authenticate by request signature or CRON_SECRET, not a session.
 const SLACK_PATHS = ["/api/slack/events", "/api/slack/interactivity", "/api/slack/commands", "/api/slack/outbox"];
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot", "/auth", "/p/", "/api/stripe/", ...SLACK_PATHS];
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot", "/auth", "/p/", "/help/", "/api/stripe/", ...SLACK_PATHS];
 
 /**
  * On the live site, send visitors from the old *.vercel.app address to the real domain.

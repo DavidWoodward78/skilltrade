@@ -93,9 +93,23 @@ alter table public.slack_events_seen enable row level security;
 -- Helpers
 -- ---------------------------------------------------------------------------
 
+-- Which plans include Slack. Keep in sync with SLACK_PLANS in lib/slack/config.ts
+-- (tests/slack/plans.test.ts checks this). Trials include it so communities can try it.
+create or replace function public.slack_plan_includes(p_plan text)
+returns boolean language sql immutable set search_path = public, extensions as $$
+  select p_plan in ('trial', 'pilot', 'growth', 'enterprise');
+$$;
+
+create or replace function public.slack_entitled(p_org uuid)
+returns boolean language sql stable security definer set search_path = public, extensions as $$
+  select exists (select 1 from organizations where id = p_org and slack_plan_includes(plan));
+$$;
+
+-- Linked AND on a plan that includes Slack. A downgrade pauses Slack without
+-- unlinking it; upgrading again resumes it.
 create or replace function public.slack_org_linked(p_org uuid)
 returns boolean language sql stable security definer set search_path = public, extensions as $$
-  select exists (select 1 from slack_workspaces where org_id = p_org and disabled_at is null);
+  select exists (select 1 from slack_workspaces where org_id = p_org and disabled_at is null) and slack_entitled(p_org);
 $$;
 
 -- The Slack identity a user signed in with (Supabase provider "slack_oidc").
@@ -209,7 +223,7 @@ returns jsonb language sql stable security definer set search_path = public, ext
       'needs', coalesce((select jsonb_agg(jsonb_build_object('category', s.category, 'skill', s.skill) order by s.category)
                          from user_skills s where s.user_id = p.id and s.kind = 'need'), '[]'::jsonb)))
   from organizations o join profiles p on p.id = p_from
-  where o.id = p_org
+  where o.id = p_org and slack_plan_includes(o.plan)
     and exists (select 1 from interests i where i.org_id = p_org and i.from_user = p_from and i.to_user = p_to and i.dismissed_at is null)
     and not exists (select 1 from interests i where i.org_id = p_org and i.from_user = p_to and i.to_user = p_from)
     and exists (select 1 from memberships m where m.org_id = p_org and m.user_id = p_from and m.suspended_at is null)
@@ -227,7 +241,7 @@ declare
   v_org uuid;
   v_match uuid;
 begin
-  select org_id into v_org from slack_workspaces where team_id = p_team and disabled_at is null;
+  select org_id into v_org from slack_workspaces where team_id = p_team and disabled_at is null and slack_entitled(org_id);
   if v_org is null then return jsonb_build_object('status', 'not_found'); end if;
 
   select * into v_card from slack_cards where id = p_card and org_id = v_org for update;
@@ -296,7 +310,7 @@ begin
   select team_id, slack_user_id into v_team, v_slack_user from slack_identity(auth.uid());
   if v_team is null then return jsonb_build_object('status', 'none'); end if;
   select o.* into v_org from organizations o join slack_workspaces w on w.org_id = o.id
-    where w.team_id = v_team and w.disabled_at is null;
+    where w.team_id = v_team and w.disabled_at is null and slack_plan_includes(o.plan);
   if not found then return jsonb_build_object('status', 'none'); end if;
 
   if exists (select 1 from memberships where org_id = v_org.id and user_id = auth.uid()) then
@@ -331,7 +345,8 @@ begin
 end $$;
 
 -- Admin settings: is Slack connected? (Never returns the token.)
-create or replace function public.slack_workspace_status(p_org uuid)
+drop function if exists public.slack_workspace_status(uuid);
+create function public.slack_workspace_status(p_org uuid)
 returns table (team_id text, team_name text, installed_at timestamptz, disabled_at timestamptz, disabled_reason text,
                members_linked bigint)
 language sql stable security definer set search_path = public, extensions as $$
@@ -357,6 +372,7 @@ revoke execute on function public.guard_slack_user_id() from public, anon, authe
 revoke execute on function public.slack_on_interest() from public, anon, authenticated;
 revoke execute on function public.slack_on_match() from public, anon, authenticated;
 revoke execute on function public.slack_org_linked(uuid) from public, anon, authenticated;
+revoke execute on function public.slack_entitled(uuid) from public, anon, authenticated;
 revoke execute on function public.slack_identity(uuid) from public, anon, authenticated;
 
 revoke execute on function public.slack_link_workspace(uuid, text, text, text, text, text, text, uuid) from public, anon, authenticated;

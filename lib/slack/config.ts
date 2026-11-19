@@ -12,6 +12,8 @@ import { siteUrl } from "@/lib/site";
  */
 export const BOT_SCOPES = ["chat:write", "im:write", "mpim:write", "users:read", "users:read.email"] as const;
 
+export { SLACK_PLANS, planIncludesSlack } from "./plans.ts";
+
 export function slackEnv() {
   return {
     clientId: cleanEnv(process.env.SLACK_CLIENT_ID),

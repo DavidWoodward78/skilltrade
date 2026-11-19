@@ -13,6 +13,14 @@ Members get SkillTrade value without leaving Slack. SkillTrade stays the system 
 - **Finding members**: members are found in Slack by their Slack sign-in, or else by their email address in the linked workspace.
 - **Disconnecting**: uninstalling the app, revoking its token, or clicking *Disconnect Slack* on the admin page turns the link off.
 
+**Plans:**
+- Slack is included on **Growth**, **Enterprise**, **Pilot** and the **free trial**, but not on **Community**.
+- On a plan without Slack, the admin page shows an upgrade prompt instead of Add to Slack.
+- A community that downgrades keeps its link, but Slack pauses until it upgrades.
+- To change which plans include Slack, edit `lib/slack/plans.ts`, `slack_plan_includes()` in the migration, and `PLANS[...].slack` in `lib/plans.ts`. `npm test` checks that all three match.
+
+**Help page for community admins:** `/help/slack` (public), linked from the admin page's Slack section.
+
 ## 1. Create the Slack app from the manifest
 
 1. Open `slack/manifest.yml` and replace:
