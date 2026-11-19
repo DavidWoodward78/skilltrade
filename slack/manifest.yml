@@ -1,0 +1,54 @@
+# SkillTrade Slack app manifest (Phase 1).
+# api.slack.com/apps -> Create New App -> From an app manifest -> paste this.
+# Before pasting, replace:
+#   https://skilltrade.team           -> your app URL (a tunnel URL for local testing, see SETUP.md)
+#   YOUR-PROJECT-REF                  -> your Supabase project ref (for Sign in with Slack)
+display_information:
+  name: SkillTrade
+  description: Skill-trade match DMs and intros from your SkillTrade community.
+  long_description: SkillTrade is a private skill-trading network for founder communities. This app DMs members when someone wants to trade skills with them, lets them answer Interested or Pass from Slack, and opens a group DM when both say yes. Profiles, trade terms and reputation stay in SkillTrade.
+  background_color: "#0f766e"
+features:
+  app_home:
+    home_tab_enabled: false
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: true
+  bot_user:
+    display_name: SkillTrade
+    always_online: false
+  # Phase 2: /skilltrade slash command (also add the `commands` bot scope)
+  # slash_commands:
+  #   - command: /skilltrade
+  #     url: https://skilltrade.team/api/slack/commands
+  #     description: Post a skill you offer or need
+  #     usage_hint: "offer <skill> | need <skill>"
+  #     should_escape: true
+oauth_config:
+  redirect_urls:
+    # "Add to Slack" (workspace install)
+    - https://skilltrade.team/api/slack/oauth/callback
+    # Sign in with Slack (handled by Supabase Auth)
+    - https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback
+  scopes:
+    bot:
+      - chat:write        # post and update the match DMs
+      - im:write          # open a 1:1 DM with a member
+      - mpim:write        # open the group DM with both matched members
+      - users:read        # required with users:read.email
+      - users:read.email  # find members by email in the linked workspace
+    user:
+      - openid            # Sign in with Slack (OpenID Connect)
+      - email
+      - profile
+settings:
+  event_subscriptions:
+    request_url: https://skilltrade.team/api/slack/events
+    bot_events:
+      - app_uninstalled
+      - tokens_revoked
+  interactivity:
+    is_enabled: true
+    request_url: https://skilltrade.team/api/slack/interactivity
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

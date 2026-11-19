@@ -72,6 +72,10 @@ Supabase callback URL for both providers: `https://<project-ref>.supabase.co/aut
 
 **Connecting accounts to an existing login:** Supabase → Authentication → Sign In / Providers (or Settings) → enable "Allow manual linking".
 
+### Slack
+
+Optional Slack integration (match DMs, group-DM intros, Sign in with Slack): see [SETUP.md](SETUP.md).
+
 ### Nightly cleanup
 
 Already scheduled by migration `20261118000300_schedule_expire.sql`. To set it up by hand instead:

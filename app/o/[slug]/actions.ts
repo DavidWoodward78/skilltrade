@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import { back } from "@/lib/org";
 import { CATEGORIES } from "@/lib/constants";
+import { after } from "next/server";
+import { kickSlackOutbox } from "@/lib/slack/server";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -71,6 +73,7 @@ export async function expressInterest(fd: FormData) {
   const to = s(fd, "to_user");
   const { error } = await supabase.from("interests").insert({ org_id: orgId, from_user: user.id, to_user: to });
   if (error && !error.message.includes("duplicate")) done(fd, { error: error.message });
+  after(() => kickSlackOutbox()); // Slack DM for the interest or the new match, if the community is linked
   const { data: match } = await supabase
     .from("matches")
     .select("id")
@@ -90,6 +93,7 @@ export async function swipeInterest(orgId: string, slug: string, to: string) {
   const { supabase, user } = await requireUser();
   const { error } = await supabase.from("interests").insert({ org_id: orgId, from_user: user.id, to_user: to });
   if (error && !error.message.includes("duplicate")) return { error: error.message };
+  after(() => kickSlackOutbox());
   const { data: match } = await supabase
     .from("matches")
     .select("id")

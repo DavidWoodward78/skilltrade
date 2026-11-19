@@ -8,6 +8,8 @@ import { InviteShare } from "@/components/InviteShare";
 import { VerifiedBadges } from "@/components/Verified";
 import { decideJoin, pauseMember, reinstateMember, removeMember, resolveReport, rotateInvite, saveAccess, setRole } from "../actions";
 import { PLANS, PLAN_LABEL, billingConfigured, type PlanId } from "@/lib/plans";
+import { slackConfigured } from "@/lib/slack/config";
+import { disconnectSlack } from "./slack-actions";
 
 type Stats = {
   members: number;
@@ -49,6 +51,11 @@ export default async function Admin({
     .eq("org_id", org.id)
     .eq("status", "pending")
     .order("created_at");
+  const { data: slackRows } = await supabase.rpc("slack_workspace_status", { p_org: org.id });
+  const slack = (slackRows ?? [])[0] as
+    | { team_name: string; installed_at: string; disabled_at: string | null; disabled_reason: string | null; members_linked: number }
+    | undefined;
+  const slackLive = !!slack && !slack.disabled_at;
   type Flag = { kind: "closed_pair" | "fast_trade" | "reported" | "paused"; users: string[]; detail: string; trade_id?: string };
   const flags = (flagData ?? []) as Flag[];
   const st = stats as Stats;
@@ -212,6 +219,43 @@ export default async function Admin({
           <input type="hidden" name="back" value={backPath} />
           <button className="text-xs text-stone-500 underline">Create a new link (old one stops working)</button>
         </form>
+      </Card>
+
+      <Card className="mb-4">
+        <h2 className="font-medium">Slack</h2>
+        {slackLive ? (
+          <>
+            <p className="mt-1 text-sm">
+              Connected to <span className="font-medium">{slack!.team_name || "your workspace"}</span>. {slack!.members_linked} member
+              {Number(slack!.members_linked) === 1 ? "" : "s"} reachable in Slack so far.
+            </p>
+            <p className="mt-1 text-xs text-stone-500">
+              Members get a DM when someone wants to trade with them, and a group DM when they match. Members are found by their
+              Slack sign-in or their email address.
+            </p>
+            <form action={disconnectSlack} className="mt-3">
+              <input type="hidden" name="org_id" value={org.id} />
+              <input type="hidden" name="slug" value={slug} />
+              <SubmitButton variant="ghost">Disconnect Slack</SubmitButton>
+            </form>
+          </>
+        ) : slackConfigured() ? (
+          <>
+            <p className="mt-1 text-xs text-stone-500">
+              {slack?.disabled_at
+                ? "Slack was disconnected. Connect it again to turn DMs back on."
+                : "Send match notifications to your community's Slack, and let members sign in with Slack."}
+            </p>
+            <a
+              href={`/api/slack/install?org=${org.id}`}
+              className="mt-3 inline-flex items-center rounded-xl bg-[#4a154b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3b113c]"
+            >
+              Add to Slack
+            </a>
+          </>
+        ) : (
+          <p className="mt-1 text-xs text-stone-500">Slack isn&apos;t set up on this server yet (see SETUP.md).</p>
+        )}
       </Card>
 
       <div className="mb-4 grid grid-cols-2 gap-2">
