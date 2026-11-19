@@ -18,6 +18,13 @@ export function OAuthButtons({ next, label = "Continue" }: { next: string; label
           <GitHubIcon size={18} /> {label} with GitHub
         </button>
       </form>
+      <form action={signInWithProvider}>
+        <input type="hidden" name="provider" value="slack_oidc" />
+        <input type="hidden" name="next" value={next} />
+        <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4a154b] py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#3b113c] active:scale-[0.98]">
+          {label} with Slack
+        </button>
+      </form>
     </div>
   );
 }

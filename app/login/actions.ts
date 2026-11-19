@@ -28,8 +28,11 @@ export async function sendMagicLink(formData: FormData) {
 }
 
 export async function signInWithProvider(formData: FormData) {
-  const provider = String(formData.get("provider")) === "github" ? "github" : "linkedin_oidc";
-  const next = safeNext(String(formData.get("next") ?? ""));
+  const requested = String(formData.get("provider"));
+  const provider = requested === "github" ? "github" : requested === "slack_oidc" ? "slack_oidc" : "linkedin_oidc";
+  let next = safeNext(String(formData.get("next") ?? ""));
+  // Slack sign-in: afterwards, join the community linked to the person's Slack workspace.
+  if (provider === "slack_oidc") next = `/auth/slack/finish?next=${encodeURIComponent(next)}`;
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
@@ -40,7 +43,7 @@ export async function signInWithProvider(formData: FormData) {
   });
   if (error || !data.url) {
     const msg = error?.message.toLowerCase().includes("not enabled")
-      ? `${provider === "github" ? "GitHub" : "LinkedIn"} sign-in isn't switched on yet. Use your email for now.`
+      ? `${provider === "github" ? "GitHub" : provider === "slack_oidc" ? "Slack" : "LinkedIn"} sign-in isn't switched on yet. Use your email for now.`
       : (error?.message ?? "Could not start sign-in");
     redirect(`/login?error=${encodeURIComponent(msg)}&next=${encodeURIComponent(next)}`);
   }

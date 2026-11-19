@@ -2,7 +2,9 @@ import { siteUrl } from "@/lib/site";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot", "/auth", "/p/", "/api/stripe/"];
+// Slack calls these server-to-server; they authenticate by request signature or CRON_SECRET, not a session.
+const SLACK_PATHS = ["/api/slack/events", "/api/slack/interactivity", "/api/slack/commands", "/api/slack/outbox"];
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot", "/auth", "/p/", "/api/stripe/", ...SLACK_PATHS];
 
 /**
  * On the live site, send visitors from the old *.vercel.app address to the real domain.
@@ -40,7 +42,8 @@ export async function middleware(request: NextRequest) {
   // Redirect URLs list), the sign-in code lands on "/" instead of /auth/callback.
   // Finish the sign-in anyway instead of dropping the person on the landing page.
   const code = request.nextUrl.searchParams.get("code");
-  if (code && !request.nextUrl.pathname.startsWith("/auth/")) {
+  // (Slack's "Add to Slack" return also carries ?code= and must reach its own handler.)
+  if (code && !request.nextUrl.pathname.startsWith("/auth/") && !request.nextUrl.pathname.startsWith("/api/slack/")) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/callback";
     if (request.cookies.get("st_pw_reset")?.value === "1") url.searchParams.set("next", "/reset-password");
